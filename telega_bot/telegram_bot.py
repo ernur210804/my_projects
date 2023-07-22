@@ -86,20 +86,19 @@ row_count = c.fetchone()[0]     #Кол-во строк в бд
 async def done_task(message: types.Message):
     task_text = message.text.split('/done', 1)[-1].strip() 
     
-    if task_text == '':
-        await message.answer("Please provide a task description after the /done command.",
-                             reply_markup=ReplyKeyboardRemove())
     
-    if int(task_text) > int(row_count):
-        await message.answer("Your task id is not correct!",
-                             reply_markup=ReplyKeyboardRemove())
-        return 0
+    
+   
         
     if task_text:
         c.execute("UPDATE tasks SET done = ? WHERE rowid = ?", ('yes', task_text))
         db.commit()
 
         await message.answer(f"Task '{task_text}' is marked as done.", reply_markup=keyboard)
+    
+    else:
+        await message.answer("Please provide a task description after the /done command.",
+                             reply_markup=ReplyKeyboardRemove())
     
         
     
