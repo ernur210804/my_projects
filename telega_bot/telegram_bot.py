@@ -34,7 +34,7 @@ keyboard = ReplyKeyboardMarkup(resize_keyboard=True).add(KeyboardButton("/add"),
 # Command handlers
 @dp.message_handler(commands=['start'])
 async def start_command(message: types.Message):
-    await bot.send_message(message.chat.id, 'Здравствуйте! Спасибо что выбрали меня. Меня зовут Ukitaka! \n /add-добавляет задание. Для добавления пишите (/add+ваше задание) \n /done-пометка выполнения задания. Для выполнения пишите (/done+ваше задание) \n /delete-Очистка списка. Для очистки пишите(/delete+all) \n /view-просмотр списка. Для просмотра списка пишите(/view)')
+    await bot.send_message(message.chat.id, 'Здравствуйте! Спасибо что выбрали меня. Меня зовут Ukitaka! \n /add-добавляет задание. Для добавления пишите (/add+ваше задание) \n /done-пометка выполнения задания. Для выполнения пишите (/done+id) \n /delete-Очистка списка. Для очистки пишите(/delete+all) \n /view-просмотр списка. Для просмотра списка пишите(/view)')
 
 @dp.message_handler(commands=['help'])
 async def help_command(message: types.Message):
@@ -50,8 +50,14 @@ def handle_response(text: str) -> str:
     if '/view' in processed:
         c.execute("SELECT rowid,task,done FROM tasks")
         tasks = c.fetchall()
-        
-        return str(tasks)
+        response=''
+        for el in tasks:
+            response += f"Id: {str(el[0])}, Task: {el[1]}, Done: {el[2]} \n"
+            
+        if response == '':
+            return 'To do list is empty!'
+        else:
+            return response
         
     if 'help' in processed:
         return 'how can i help you?'
@@ -72,18 +78,31 @@ async def add_task(message: types.Message):
                              reply_markup=ReplyKeyboardRemove())
 
      
+c.execute("SELECT COUNT(*) FROM tasks")
+row_count = c.fetchone()[0]     #Кол-во строк в бд
+     
 # Done task
 @dp.message_handler(commands=['done'])
 async def done_task(message: types.Message):
-    task_text = message.text.split('/done', 1)[-1].strip()  
+    task_text = message.text.split('/done', 1)[-1].strip() 
+    
+    if task_text == '':
+        await message.answer("Please provide a task description after the /done command.",
+                             reply_markup=ReplyKeyboardRemove())
+    
+    if int(task_text) > int(row_count):
+        await message.answer("Your task id is not correct!",
+                             reply_markup=ReplyKeyboardRemove())
+        return 0
+        
     if task_text:
-        c.execute("UPDATE tasks SET done = ? WHERE task = ?", ('yes', task_text))
+        c.execute("UPDATE tasks SET done = ? WHERE rowid = ?", ('yes', task_text))
         db.commit()
 
         await message.answer(f"Task '{task_text}' is marked as done.", reply_markup=keyboard)
-    else:
-        await message.answer("Please provide a task description after the /done command.",
-                             reply_markup=ReplyKeyboardRemove())
+    
+        
+    
 
 
 # DELETE task
